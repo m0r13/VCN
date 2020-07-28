@@ -136,13 +136,13 @@ class butterfly4D(torch.nn.Module):
 
         out2 = self.convb3(out2) # 3x3, 9
 
-        tout1 = F.upsample(out2.view(b,c,u2,v2,-1),(u1,v1,h2*w2),mode='trilinear').view(b,c,u1,v1,h2,w2) # 5x5
-        tout1 = F.upsample(tout1.view(b,c,-1,h2,w2),(u1*v1,h1,w1),mode='trilinear').view(b,c,u1,v1,h1,w1) # 5x5
+        tout1 = F.upsample(out2.view(b,c,u2,v2,-1),(u1,v1,h2*w2),mode='trilinear', align_corners=True).view(b,c,u1,v1,h2,w2) # 5x5
+        tout1 = F.upsample(tout1.view(b,c,-1,h2,w2),(u1*v1,h1,w1),mode='trilinear', align_corners=True).view(b,c,u1,v1,h1,w1) # 5x5
         out1 = tout1 + out1
         out1 = self.convb2(out1)
 
-        tout = F.upsample(out1.view(b,c,u1,v1,-1),(u,v,h1*w1),mode='trilinear').view(b,c,u,v,h1,w1)
-        tout = F.upsample(tout.view(b,c,-1,h1,w1),(u*v,h,w),mode='trilinear').view(b,c,u,v,h,w)
+        tout = F.upsample(out1.view(b,c,u1,v1,-1),(u,v,h1*w1),mode='trilinear', align_corners=True).view(b,c,u,v,h1,w1)
+        tout = F.upsample(tout.view(b,c,-1,h1,w1),(u*v,h,w),mode='trilinear', align_corners=True).view(b,c,u,v,h,w)
         out = tout + out
         out = self.convb1(out)
 

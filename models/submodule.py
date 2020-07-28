@@ -123,7 +123,7 @@ class pyramidPooling(nn.Module):
         for i, module in enumerate(self.path_module_list):
             out = F.avg_pool2d(x, k_sizes[i], stride=strides[i], padding=0)
             out = module(out)
-            out = F.upsample(out, size=(h,w), mode='bilinear')
+            out = F.upsample(out, size=(h,w), mode='bilinear', align_corners=True)
             pp_sum = pp_sum + 1./self.levels*out
         pp_sum = self.relu(pp_sum/2.)
 
@@ -218,19 +218,19 @@ class pspnet(nn.Module):
         conv6 = self.res_block7(conv5)
         conv6 = self.pyramid_pooling(conv6)
 
-        conv6x = F.upsample(conv6, [conv5.size()[2],conv5.size()[3]],mode='bilinear')
+        conv6x = F.upsample(conv6, [conv5.size()[2],conv5.size()[3]],mode='bilinear', align_corners=True)
         concat5 = torch.cat((conv5,self.upconv6[1](conv6x)),dim=1)
         conv5 = self.iconv5(concat5) 
 
-        conv5x = F.upsample(conv5, [conv4.size()[2],conv4.size()[3]],mode='bilinear')
+        conv5x = F.upsample(conv5, [conv4.size()[2],conv4.size()[3]],mode='bilinear', align_corners=True)
         concat4 = torch.cat((conv4,self.upconv5[1](conv5x)),dim=1)
         conv4 = self.iconv4(concat4) 
 
-        conv4x = F.upsample(conv4, [rconv3.size()[2],rconv3.size()[3]],mode='bilinear')
+        conv4x = F.upsample(conv4, [rconv3.size()[2],rconv3.size()[3]],mode='bilinear', align_corners=True)
         concat3 = torch.cat((rconv3,self.upconv4[1](conv4x)),dim=1)
         conv3 = self.iconv3(concat3) 
 
-        conv3x = F.upsample(conv3, [pool1.size()[2],pool1.size()[3]],mode='bilinear')
+        conv3x = F.upsample(conv3, [pool1.size()[2],pool1.size()[3]],mode='bilinear', align_corners=True)
         concat2 = torch.cat((pool1,self.upconv3[1](conv3x)),dim=1)
         conv2 = self.iconv2(concat2) 
 
@@ -334,19 +334,19 @@ class pspnet_s(nn.Module):
         conv6 = self.res_block7(conv5)
         conv6 = self.pyramid_pooling(conv6)
 
-        conv6x = F.upsample(conv6, [conv5.size()[2],conv5.size()[3]],mode='bilinear')
+        conv6x = F.upsample(conv6, [conv5.size()[2],conv5.size()[3]],mode='bilinear', align_corners=True)
         concat5 = torch.cat((conv5,self.upconv6[1](conv6x)),dim=1)
         conv5 = self.iconv5(concat5) 
 
-        conv5x = F.upsample(conv5, [conv4.size()[2],conv4.size()[3]],mode='bilinear')
+        conv5x = F.upsample(conv5, [conv4.size()[2],conv4.size()[3]],mode='bilinear', align_corners=True)
         concat4 = torch.cat((conv4,self.upconv5[1](conv5x)),dim=1)
         conv4 = self.iconv4(concat4) 
 
-        conv4x = F.upsample(conv4, [rconv3.size()[2],rconv3.size()[3]],mode='bilinear')
+        conv4x = F.upsample(conv4, [rconv3.size()[2],rconv3.size()[3]],mode='bilinear', align_corners=True)
         concat3 = torch.cat((rconv3,self.upconv4[1](conv4x)),dim=1)
         conv3 = self.iconv3(concat3) 
 
-        #conv3x = F.upsample(conv3, [pool1.size()[2],pool1.size()[3]],mode='bilinear')
+        #conv3x = F.upsample(conv3, [pool1.size()[2],pool1.size()[3]],mode='bilinear', align_corners=True, align_corners=True)
         #concat2 = torch.cat((pool1,self.upconv3[1](conv3x)),dim=1)
         #conv2 = self.iconv2(concat2) 
 
