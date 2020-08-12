@@ -28,6 +28,8 @@ parser.add_argument('--loadmodel', default=None,
                     help='model path')
 parser.add_argument('--outdir', default='output',
                     help='output path')
+parser.add_argument('--model', default='VCN',
+                    help='VCN or VCN_small')
 parser.add_argument('--testres', type=float, default=1,
                     help='resolution, {1: original resolution, 2: 2X resolution}')
 parser.add_argument('--maxdisp', type=int ,default=256,
@@ -104,8 +106,10 @@ if args.dataset == 'chairs':
     test_left_img = [test_left_img[i] for i,flag in enumerate(split)     if flag==2]
     test_right_img = [test_right_img[i] for i,flag in enumerate(split)     if flag==2]
 
-
-from models.VCN import VCN
+if args.model == 'VCN':
+    from models.VCN import VCN
+elif args.model == 'VCN_small':
+    from models.VCN_small import VCN
 #if '2015' in args.dataset:
 #    model = VCN([1, maxw, maxh], md=[8,4,4,4,4], fac=2)
 #elif 'sintel' in args.dataset:
@@ -163,6 +167,24 @@ def main():
         imgR = imgR[:,:,::-1].copy() / 255. - np.asarray(mean_R).mean(0)[np.newaxis,np.newaxis,:]
         imgL = np.transpose(imgL, [2,0,1])[np.newaxis]
         imgR = np.transpose(imgR, [2,0,1])[np.newaxis]
+
+        # support for any resolution inputs
+        from models.VCN import WarpModule, flow_reg
+        if hasattr(model.module, 'flow_reg64'):
+            model.module.flow_reg64 = flow_reg([1,max_w//64,max_h//64], ent=model.module.flow_reg64.ent, maxdisp=model.module.flow_reg64.md, fac=model.module.flow_reg64.fac).cuda()
+        if hasattr(model.module, 'flow_reg32'):
+            model.module.flow_reg32 = flow_reg([1,max_w//64*2,max_h//64*2], ent=model.module.flow_reg32.ent, maxdisp=model.module.flow_reg32.md, fac=model.module.flow_reg32.fac).cuda()
+        if hasattr(model.module, 'flow_reg16'):
+            model.module.flow_reg16 = flow_reg([1,max_w//64*4,max_h//64*4], ent=model.module.flow_reg16.ent, maxdisp=model.module.flow_reg16.md, fac=model.module.flow_reg16.fac).cuda()
+        if hasattr(model.module, 'flow_reg8'):
+            model.module.flow_reg8 =  flow_reg([1,max_w//64*8, max_h//64*8], ent=model.module.flow_reg8.ent,  maxdisp=model.module.flow_reg8.md , fac = model.module.flow_reg8.fac).cuda()
+        if hasattr(model.module, 'flow_reg4'):
+            model.module.flow_reg4 =  flow_reg([1,max_w//64*16, max_h//64*16 ], ent=model.module.flow_reg4.ent,  maxdisp=model.module.flow_reg4.md , fac = model.module.flow_reg4.fac).cuda()
+        model.module.warp5 = WarpModule([1,max_w//32,max_h//32]).cuda()
+        model.module.warp4 = WarpModule([1,max_w//16,max_h//16]).cuda()
+        model.module.warp3 = WarpModule([1,max_w//8, max_h//8]).cuda()
+        model.module.warp2 = WarpModule([1,max_w//4, max_h//4]).cuda()
+        model.module.warpx = WarpModule([1,max_w, max_h]).cuda()
 
         # forward
         imgL = Variable(torch.FloatTensor(imgL).cuda())
