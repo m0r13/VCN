@@ -120,7 +120,7 @@ class WarpModule(nn.Module):
         vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:]/max(H-1,1)-1.0
 
         vgrid = vgrid.permute(0,2,3,1)        
-        output = nn.functional.grid_sample(x, vgrid)
+        output = nn.functional.grid_sample(x, vgrid, align_corners=True)
         mask = ((vgrid[:,:,:,0].abs()<1) * (vgrid[:,:,:,1].abs()<1)) >0
         return output*mask.unsqueeze(1).float(), mask
 
@@ -374,7 +374,7 @@ class VCN(nn.Module):
         flow6 = ( flow6h.view(b,-1,2,h,w) * F.softmax(va,1) ).sum(1)
 
         ## matching 5
-        up_flow6 = F.upsample(flow6, [im.size()[2]//32,im.size()[3]//32], mode='bilinear')*2
+        up_flow6 = F.upsample(flow6, [im.size()[2]//32,im.size()[3]//32], mode='bilinear', align_corners=True)*2
         warp5,_ = self.warp5(c25n, up_flow6)
         if self.training:
             feat5 = self.corrf(c15n,warp5,self.md[1])
@@ -393,8 +393,8 @@ class VCN(nn.Module):
         ent5h =  ent5h.view(bs,-1,h,w) # b, 16*1, h, w
 
         # append coarse hypotheses
-        flow5h = torch.cat((flow5h, F.upsample(flow6h.detach()*2, [flow5h.shape[2],flow5h.shape[3]], mode='bilinear')),1) # b, k2--k2, h, w
-        ent5h = torch.cat((ent5h, F.upsample(ent6h, [flow5h.shape[2],flow5h.shape[3]], mode='bilinear')),1)
+        flow5h = torch.cat((flow5h, F.upsample(flow6h.detach()*2, [flow5h.shape[2],flow5h.shape[3]], mode='bilinear', align_corners=True)),1) # b, k2--k2, h, w
+        ent5h = torch.cat((ent5h, F.upsample(ent6h, [flow5h.shape[2],flow5h.shape[3]], mode='bilinear', align_corners=True)),1)
 
         if self.training:
             x = torch.cat((ent5h.detach(), flow5h.detach(), c15),1)
@@ -409,7 +409,7 @@ class VCN(nn.Module):
         
 
         ## matching 4
-        up_flow5 = F.upsample(flow5, [im.size()[2]//16,im.size()[3]//16], mode='bilinear')*2
+        up_flow5 = F.upsample(flow5, [im.size()[2]//16,im.size()[3]//16], mode='bilinear', align_corners=True)*2
         warp4,_ = self.warp4(c24n, up_flow5)
         if self.training:
             feat4 = self.corrf(c14n,warp4,self.md[2])
@@ -428,8 +428,8 @@ class VCN(nn.Module):
         ent4h =  ent4h.view(bs,-1,h,w) # b, 16*1, h, w
 
         # append coarse hypotheses
-        flow4h = torch.cat((flow4h, F.upsample(flow5h.detach()*2, [flow4h.shape[2],flow4h.shape[3]], mode='bilinear')),1)
-        ent4h = torch.cat((ent4h, F.upsample(ent5h, [flow4h.shape[2],flow4h.shape[3]], mode='bilinear')),1)
+        flow4h = torch.cat((flow4h, F.upsample(flow5h.detach()*2, [flow4h.shape[2],flow4h.shape[3]], mode='bilinear', align_corners=True)),1)
+        ent4h = torch.cat((ent4h, F.upsample(ent5h, [flow4h.shape[2],flow4h.shape[3]], mode='bilinear', align_corners=True)),1)
 
         if self.training:
             x = torch.cat((ent4h.detach(), flow4h.detach(), c14),1)
@@ -444,7 +444,7 @@ class VCN(nn.Module):
 
 
         ## matching 3
-        up_flow4 = F.upsample(flow4, [im.size()[2]//8,im.size()[3]//8], mode='bilinear')*2
+        up_flow4 = F.upsample(flow4, [im.size()[2]//8,im.size()[3]//8], mode='bilinear', align_corners=True)*2
         warp3,_ = self.warp3(c23n, up_flow4)
         if self.training:
             feat3 = self.corrf(c13n,warp3,self.md[3])
@@ -463,8 +463,8 @@ class VCN(nn.Module):
         ent3h =  ent3h.view(bs,-1,h,w) # b, 16*1, h, w
 
         # append coarse hypotheses
-        flow3h = torch.cat((flow3h, F.upsample(flow4h.detach()*2, [flow3h.shape[2],flow3h.shape[3]], mode='bilinear')),1)
-        ent3h = torch.cat((ent3h, F.upsample(ent4h, [flow3h.shape[2],flow3h.shape[3]], mode='bilinear')),1)
+        flow3h = torch.cat((flow3h, F.upsample(flow4h.detach()*2, [flow3h.shape[2],flow3h.shape[3]], mode='bilinear', align_corners=True)),1)
+        ent3h = torch.cat((ent3h, F.upsample(ent4h, [flow3h.shape[2],flow3h.shape[3]], mode='bilinear', align_corners=True)),1)
 
         if self.training:
             x = torch.cat((ent3h.detach(), flow3h.detach(), c13),1)
@@ -477,10 +477,10 @@ class VCN(nn.Module):
         va = va.view(b,-1,2,h,w)
         flow3 = ( flow3h.view(b,-1,2,h,w) * F.softmax(va,1) ).sum(1)
 
-        flow3 = F.upsample(flow3, [im.size()[2],im.size()[3]], mode='bilinear')
-        flow4 = F.upsample(flow4, [im.size()[2],im.size()[3]], mode='bilinear')
-        flow5 = F.upsample(flow5, [im.size()[2],im.size()[3]], mode='bilinear')
-        flow6 = F.upsample(flow6, [im.size()[2],im.size()[3]], mode='bilinear')
+        flow3 = F.upsample(flow3, [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)
+        flow4 = F.upsample(flow4, [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)
+        flow5 = F.upsample(flow5, [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)
+        flow6 = F.upsample(flow6, [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)
         flow2 = flow3*2
 
         if self.training:
@@ -497,14 +497,14 @@ class VCN(nn.Module):
             occ_mask = (im_warp - im[:bs]).norm(dim=1)>0.3
         
             #up_flow3 = F.upsample(up_flow3, [im.size()[2],im.size()[3]], mode='bilinear')*4
-            up_flow4 = F.upsample(up_flow4, [im.size()[2],im.size()[3]], mode='bilinear')*8
-            up_flow5 = F.upsample(up_flow5, [im.size()[2],im.size()[3]], mode='bilinear')*16
-            up_flow6 = F.upsample(up_flow6, [im.size()[2],im.size()[3]], mode='bilinear')*32
+            up_flow4 = F.upsample(up_flow4, [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)*8
+            up_flow5 = F.upsample(up_flow5, [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)*16
+            up_flow6 = F.upsample(up_flow6, [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)*32
             #oor2 = F.upsample(oor2[:,np.newaxis], [im.size()[2],im.size()[3]], mode='bilinear')[:,0]
-            oor3 = F.upsample(oor3[:,np.newaxis], [im.size()[2],im.size()[3]], mode='bilinear')[:,0]
-            oor4 = F.upsample(oor4[:,np.newaxis], [im.size()[2],im.size()[3]], mode='bilinear')[:,0]
-            oor5 = F.upsample(oor5[:,np.newaxis], [im.size()[2],im.size()[3]], mode='bilinear')[:,0]
-            oor6 = F.upsample(oor6[:,np.newaxis], [im.size()[2],im.size()[3]], mode='bilinear')[:,0]
+            oor3 = F.upsample(oor3[:,np.newaxis], [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)[:,0]
+            oor4 = F.upsample(oor4[:,np.newaxis], [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)[:,0]
+            oor5 = F.upsample(oor5[:,np.newaxis], [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)[:,0]
+            oor6 = F.upsample(oor6[:,np.newaxis], [im.size()[2],im.size()[3]], mode='bilinear', align_corners=True)[:,0]
             loss += self.get_oor_loss(flowl0[:,:2]-0,        oor6, (64* self.flow_reg64.flowx.max()),occ_mask)
             loss += self.get_oor_loss(flowl0[:,:2]-up_flow6, oor5, (32* self.flow_reg32.flowx.max()),occ_mask)
             loss += self.get_oor_loss(flowl0[:,:2]-up_flow5, oor4, (16* self.flow_reg16.flowx.max()),occ_mask)
@@ -513,4 +513,4 @@ class VCN(nn.Module):
 
             return flow2*4, flow3*8,flow4*16,flow5*32,flow6*64,loss, oor3
         else:
-            return flow2*4, ent3h.mean(1)[0]
+            return flow2*4#, ent3h.mean(1)[0]
